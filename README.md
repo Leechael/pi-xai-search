@@ -1,7 +1,6 @@
 # pi-xai-search
 
-[![npm](https://img.shields.io/npm/v/pi-xai-search)](https://www.npmjs.com/package/pi-xai-search)
-[![license](https://img.shields.io/npm/l/pi-xai-search)](./LICENSE)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 **Search the web and X in Pi through your xAI / Grok subscription.**
 
