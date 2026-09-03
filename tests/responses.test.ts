@@ -180,4 +180,110 @@ describe("responses", () => {
     assert.equal(tools[0]?.to_date, "2025-02-01");
     assert.match(text, /tweets/);
   });
+
+  it("runWebSearch emits excluded_domains filters", async () => {
+    let body: Record<string, unknown> = {};
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
+      return new Response(
+        JSON.stringify({
+          model: "grok-4.20-multi-agent",
+          output: [{ type: "message", content: [{ type: "output_text", text: "ok" }] }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    };
+
+    await runWebSearch("tok", { query: "q", excluded_domains: ["spam.com"] }, { fetchImpl });
+    const tools = body.tools as Array<Record<string, unknown>>;
+    assert.deepEqual(tools[0]?.filters, { excluded_domains: ["spam.com"] });
+  });
+
+  it("runWebSearch rejects mutually exclusive domain filters and over-limit lists", async () => {
+    const fetchImpl: typeof fetch = async () => {
+      throw new Error("fetch must not be called when validation fails");
+    };
+
+    await assert.rejects(
+      runWebSearch(
+        "tok",
+        { query: "q", allowed_domains: ["a.com"], excluded_domains: ["b.com"] },
+        { fetchImpl },
+      ),
+      /cannot set both allowed_domains and excluded_domains/,
+    );
+
+    const six = ["a.com", "b.com", "c.com", "d.com", "e.com", "f.com"];
+    await assert.rejects(
+      runWebSearch("tok", { query: "q", allowed_domains: six }, { fetchImpl }),
+      /allows at most 5/,
+    );
+    await assert.rejects(
+      runWebSearch("tok", { query: "q", excluded_domains: six }, { fetchImpl }),
+      /allows at most 5/,
+    );
+  });
+
+  it("runXSearch rejects invalid dates and inverted windows", async () => {
+    const fetchImpl: typeof fetch = async () => {
+      throw new Error("fetch must not be called when validation fails");
+    };
+
+    await assert.rejects(
+      runXSearch("tok", { query: "q", from_date: "2025-1-1" }, { fetchImpl }),
+      /not zero-padded YYYY-MM-DD/,
+    );
+    await assert.rejects(
+      runXSearch("tok", { query: "q", to_date: "2025-02-30" }, { fetchImpl }),
+      /not a valid YYYY-MM-DD date/,
+    );
+    await assert.rejects(
+      runXSearch(
+        "tok",
+        { query: "q", from_date: "2025-03-01", to_date: "2025-01-01" },
+        { fetchImpl },
+      ),
+      /from_date must be on or before to_date/,
+    );
+  });
+
+  it("runXSearch emits handle filters and rejects invalid handle lists", async () => {
+    let body: Record<string, unknown> = {};
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
+      return new Response(
+        JSON.stringify({
+          model: "grok-4.20-0309-reasoning",
+          output: [{ type: "message", content: [{ type: "output_text", text: "ok" }] }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    };
+
+    await runXSearch("tok", { query: "q", allowed_x_handles: ["xai", "grok"] }, { fetchImpl });
+    const tools = body.tools as Array<Record<string, unknown>>;
+    assert.deepEqual(tools[0]?.allowed_x_handles, ["xai", "grok"]);
+    assert.equal(tools[0]?.excluded_x_handles, undefined);
+
+    const noFetch: typeof fetch = async () => {
+      throw new Error("fetch must not be called when validation fails");
+    };
+    await assert.rejects(
+      runXSearch(
+        "tok",
+        { query: "q", allowed_x_handles: ["a"], excluded_x_handles: ["b"] },
+        { fetchImpl: noFetch },
+      ),
+      /cannot set both allowed_x_handles and excluded_x_handles/,
+    );
+    const twentyOne = Array.from({ length: 21 }, (_, i) => `user${i}`);
+    await assert.rejects(
+      runXSearch("tok", { query: "q", allowed_x_handles: twentyOne }, { fetchImpl: noFetch }),
+      /allows at most 20/,
+    );
+    await assert.rejects(
+      runXSearch("tok", { query: "q", excluded_x_handles: twentyOne }, { fetchImpl: noFetch }),
+      /allows at most 20/,
+    );
+  });
 });

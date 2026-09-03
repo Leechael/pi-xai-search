@@ -4,6 +4,8 @@ import {
   GROK_CLI_CLIENT_IDENTIFIER,
   GROK_CLI_TOKEN_AUTH,
   GROK_CLI_VERSION,
+  MAX_WEB_SEARCH_DOMAINS,
+  MAX_X_SEARCH_HANDLES,
   SEARCH_TIMEOUT_MS,
   USER_AGENT,
   XAI_API_BASE,
@@ -80,6 +82,77 @@ export function ensurePromptCacheKey(
   }
   const key = clampPromptCacheKey(sessionId ?? undefined);
   if (key) body.prompt_cache_key = key;
+}
+
+const SEARCH_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** Strict zero-padded YYYY-MM-DD, real calendar date, year >= 1 (mirrors grok-build SearchDateBound). */
+export function validateSearchDate(field: "from_date" | "to_date", value: string): void {
+  const m = SEARCH_DATE_RE.exec(value);
+  if (!m) {
+    throw new Error(`${field} ${JSON.stringify(value)} is not zero-padded YYYY-MM-DD`);
+  }
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const d = new Date(0);
+  d.setUTCFullYear(year, month - 1, day);
+  if (
+    year < 1 ||
+    d.getUTCFullYear() !== year ||
+    d.getUTCMonth() !== month - 1 ||
+    d.getUTCDate() !== day
+  ) {
+    throw new Error(`${field} ${JSON.stringify(value)} is not a valid YYYY-MM-DD date`);
+  }
+}
+
+export function validateSearchDateWindow(from_date?: string, to_date?: string): void {
+  if (from_date) validateSearchDate("from_date", from_date);
+  if (to_date) validateSearchDate("to_date", to_date);
+  if (from_date && to_date && from_date > to_date) {
+    throw new Error(`from_date must be on or before to_date (got ${from_date} > ${to_date})`);
+  }
+}
+
+/** allowed/excluded domain lists are mutually exclusive and capped (mirrors grok-build WebSearchOptions). */
+export function validateWebSearchDomainFilters(
+  allowed_domains?: string[],
+  excluded_domains?: string[],
+): void {
+  if (allowed_domains?.length && excluded_domains?.length) {
+    throw new Error("web_search cannot set both allowed_domains and excluded_domains");
+  }
+  for (const [field, list] of [
+    ["allowed_domains", allowed_domains],
+    ["excluded_domains", excluded_domains],
+  ] as const) {
+    if (list && list.length > MAX_WEB_SEARCH_DOMAINS) {
+      throw new Error(
+        `web_search ${field} has ${list.length} domains; the web-search API allows at most ${MAX_WEB_SEARCH_DOMAINS}`,
+      );
+    }
+  }
+}
+
+/** allowed/excluded handle lists are mutually exclusive and capped (xAI x_search tool contract). */
+export function validateXSearchHandleFilters(
+  allowed_x_handles?: string[],
+  excluded_x_handles?: string[],
+): void {
+  if (allowed_x_handles?.length && excluded_x_handles?.length) {
+    throw new Error("x_search cannot set both allowed_x_handles and excluded_x_handles");
+  }
+  for (const [field, list] of [
+    ["allowed_x_handles", allowed_x_handles],
+    ["excluded_x_handles", excluded_x_handles],
+  ] as const) {
+    if (list && list.length > MAX_X_SEARCH_HANDLES) {
+      throw new Error(
+        `x_search ${field} has ${list.length} handles; the x_search API allows at most ${MAX_X_SEARCH_HANDLES}`,
+      );
+    }
+  }
 }
 
 export function formatResponseSummary(result: ResponsesResult, title: string): string {
@@ -216,6 +289,7 @@ export async function runWebSearch(
   params: {
     query: string;
     allowed_domains?: string[];
+    excluded_domains?: string[];
     model?: string;
   },
   opts?: {
@@ -228,10 +302,13 @@ export async function runWebSearch(
   const query = params.query?.trim();
   if (!query) throw new Error("query is required");
 
+  validateWebSearchDomainFilters(params.allowed_domains, params.excluded_domains);
+
   const webSearchTool: Record<string, unknown> = { type: "web_search" };
-  if (params.allowed_domains?.length) {
-    webSearchTool.filters = { allowed_domains: params.allowed_domains };
-  }
+  const filters: Record<string, unknown> = {};
+  if (params.allowed_domains?.length) filters.allowed_domains = params.allowed_domains;
+  if (params.excluded_domains?.length) filters.excluded_domains = params.excluded_domains;
+  if (Object.keys(filters).length > 0) webSearchTool.filters = filters;
 
   const model = params.model?.trim() || DEFAULT_WEB_SEARCH_MODEL;
   const body: Record<string, unknown> = {
@@ -255,6 +332,8 @@ export async function runXSearch(
     query: string;
     from_date?: string;
     to_date?: string;
+    allowed_x_handles?: string[];
+    excluded_x_handles?: string[];
     model?: string;
   },
   opts?: {
@@ -267,9 +346,16 @@ export async function runXSearch(
   const query = params.query?.trim();
   if (!query) throw new Error("query is required");
 
+  const fromDate = params.from_date?.trim();
+  const toDate = params.to_date?.trim();
+  validateSearchDateWindow(fromDate, toDate);
+  validateXSearchHandleFilters(params.allowed_x_handles, params.excluded_x_handles);
+
   const xSearchTool: Record<string, unknown> = { type: "x_search" };
-  if (params.from_date?.trim()) xSearchTool.from_date = params.from_date.trim();
-  if (params.to_date?.trim()) xSearchTool.to_date = params.to_date.trim();
+  if (fromDate) xSearchTool.from_date = fromDate;
+  if (toDate) xSearchTool.to_date = toDate;
+  if (params.allowed_x_handles?.length) xSearchTool.allowed_x_handles = params.allowed_x_handles;
+  if (params.excluded_x_handles?.length) xSearchTool.excluded_x_handles = params.excluded_x_handles;
 
   const model = params.model?.trim() || DEFAULT_X_SEARCH_MODEL;
   const body: Record<string, unknown> = {
