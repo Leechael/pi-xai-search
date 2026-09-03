@@ -32,7 +32,7 @@ export default function piXaiSearch(pi: ExtensionAPI): void {
       name: "xai_search",
       label: "xai_search",
       description:
-        "Search the web for up-to-date information via xAI Responses API built-in web_search (Grok). Uses Pi xai OAuth. Optional allowed_domains / excluded_domains filter (mutually exclusive, max 5 each).",
+        "Search the web for up-to-date information via xAI Responses API built-in web_search (Grok). Uses Pi xai OAuth. Optional allowed_domains / excluded_domains filter (mutually exclusive, max 5 each). Optional model override. Output ends with a deduplicated source URL list harvested from url_citation annotations.",
       parameters: Type.Object({
         query: Type.String({ description: "The search query to perform." }),
         allowed_domains: Type.Optional(
@@ -47,6 +47,12 @@ export default function piXaiSearch(pi: ExtensionAPI): void {
               "Optional list of domains to exclude from search results. Mutually exclusive with allowed_domains; max 5 entries.",
           }),
         ),
+        model: Type.Optional(
+          Type.String({
+            description:
+              "Optional xAI model override for the search call (default grok-4.20-multi-agent).",
+          }),
+        ),
       }),
       async execute(_id, params, signal, _onUpdate, ctx) {
         try {
@@ -57,6 +63,7 @@ export default function piXaiSearch(pi: ExtensionAPI): void {
               query: params.query,
               allowed_domains: params.allowed_domains,
               excluded_domains: params.excluded_domains,
+              model: params.model,
             },
             { signal, sessionId: sessionIdOf(ctx) },
           );
@@ -81,7 +88,7 @@ export default function piXaiSearch(pi: ExtensionAPI): void {
       name: "tweet_search",
       label: "tweet_search",
       description:
-        "Search X (Twitter) via xAI Responses API built-in x_search (live posts + citations). Uses Pi xai OAuth. Optional from_date/to_date (strict YYYY-MM-DD UTC; from_date inclusive, to_date EXCLUSIVE at 00:00 UTC of that day — use tomorrow's date to include today). Optional allowed_x_handles / excluded_x_handles (mutually exclusive, max 20 each).",
+        "Search X (Twitter) via xAI Responses API built-in x_search (live posts + citations). Uses Pi xai OAuth. Replies quote key posts verbatim with the post URL after each quote, followed by a deduplicated source URL list. Optional from_date/to_date (strict YYYY-MM-DD UTC; from_date inclusive, to_date EXCLUSIVE at 00:00 UTC of that day — use tomorrow's date to include today). Optional allowed_x_handles / excluded_x_handles (mutually exclusive, max 20 each). Optional enable_image_understanding / enable_video_understanding. Optional model override.",
       parameters: Type.Object({
         query: Type.String({ description: "X search query." }),
         from_date: Type.Optional(
@@ -107,6 +114,18 @@ export default function piXaiSearch(pi: ExtensionAPI): void {
               "Optional list of X handles to exclude from search results. Mutually exclusive with allowed_x_handles; max 20 entries.",
           }),
         ),
+        enable_image_understanding: Type.Optional(
+          Type.Boolean({ description: "Let xAI analyze images attached to matching posts." }),
+        ),
+        enable_video_understanding: Type.Optional(
+          Type.Boolean({ description: "Let xAI analyze videos attached to matching posts." }),
+        ),
+        model: Type.Optional(
+          Type.String({
+            description:
+              "Optional xAI model override for the search call (default grok-4.20-0309-reasoning).",
+          }),
+        ),
       }),
       async execute(_id, params, signal, _onUpdate, ctx) {
         try {
@@ -119,6 +138,9 @@ export default function piXaiSearch(pi: ExtensionAPI): void {
               to_date: params.to_date,
               allowed_x_handles: params.allowed_x_handles,
               excluded_x_handles: params.excluded_x_handles,
+              enable_image_understanding: params.enable_image_understanding,
+              enable_video_understanding: params.enable_video_understanding,
+              model: params.model,
             },
             { signal, sessionId: sessionIdOf(ctx) },
           );

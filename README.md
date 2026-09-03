@@ -97,6 +97,7 @@ Arguments:
 - `query` — required search question.
 - `allowed_domains` — optional list of domains to restrict results to. Mutually exclusive with `excluded_domains`; max 5 entries.
 - `excluded_domains` — optional list of domains to exclude from results. Mutually exclusive with `allowed_domains`; max 5 entries.
+- `model` — optional xAI model override for the search call (default `grok-4.20-multi-agent`).
 
 ### `tweet_search`
 
@@ -122,8 +123,13 @@ Arguments:
 - `to_date` — optional `YYYY-MM-DD` (UTC), **exclusive** upper bound: the window ends at 00:00 UTC of that day. To include today's posts, pass tomorrow's date. (`from_date` equal to `to_date` is an empty window.)
 - `allowed_x_handles` — optional list of X handles to restrict results to. Mutually exclusive with `excluded_x_handles`; max 20 entries.
 - `excluded_x_handles` — optional list of X handles to exclude from results. Mutually exclusive with `allowed_x_handles`; max 20 entries.
+- `enable_image_understanding` — optional boolean; let xAI analyze images attached to matching posts.
+- `enable_video_understanding` — optional boolean; let xAI analyze videos attached to matching posts.
+- `model` — optional xAI model override for the search call (default `grok-4.20-0309-reasoning`).
 
 Both dates must be strictly zero-padded `YYYY-MM-DD` (validated locally before the API call), and `from_date` must be on or before `to_date`.
+
+The tool sends a fixed instruction asking Grok to quote key posts verbatim with the post URL after each quote, and harvests real post URLs from the response's `url_citation` annotations (the top-level `citations` field is often null), so the output includes a deduplicated source list even when the prose omits links.
 
 `tweet_search` also sends the Pi session id as Responses cache affinity. It is not injected into the model conversation text.
 

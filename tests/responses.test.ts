@@ -286,4 +286,68 @@ describe("responses", () => {
       /allows at most 20/,
     );
   });
+
+  it("runXSearch sends verbatim instructions, media flags, and model override", async () => {
+    let body: Record<string, unknown> = {};
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
+      return new Response(
+        JSON.stringify({
+          model: "grok-4-1-fast-non-reasoning",
+          output: [{ type: "message", content: [{ type: "output_text", text: "ok" }] }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    };
+
+    await runXSearch(
+      "tok",
+      {
+        query: "q",
+        enable_image_understanding: true,
+        enable_video_understanding: false,
+        model: "grok-4-1-fast-non-reasoning",
+      },
+      { fetchImpl },
+    );
+    assert.equal(body.model, "grok-4-1-fast-non-reasoning");
+    assert.match(String(body.instructions), /verbatim/);
+    const tools = body.tools as Array<Record<string, unknown>>;
+    assert.equal(tools[0]?.enable_image_understanding, true);
+    assert.equal(tools[0]?.enable_video_understanding, false);
+  });
+
+  it("formatResponseSummary harvests url_citation annotations and nested tool usage", () => {
+    const text = formatResponseSummary(
+      {
+        model: "grok-4.5",
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: "answer",
+                annotations: [
+                  { type: "url_citation", url: "https://x.com/a/status/1" },
+                  { type: "url_citation", url: "https://x.com/a/status/1" },
+                ],
+              },
+            ],
+          },
+        ],
+        usage: {
+          input_tokens: 1,
+          output_tokens: 2,
+          server_side_tool_usage_details: { x_search_calls: 3 },
+        },
+        citations: ["https://x.com/a/status/1", "https://example.com/b"],
+      },
+      "X search",
+    );
+    assert.match(text, /x_search×3/);
+    assert.match(text, /1\. https:\/\/x\.com\/a\/status\/1/);
+    assert.match(text, /2\. https:\/\/example\.com\/b/);
+    assert.equal((text.match(/x\.com\/a\/status\/1/g) ?? []).length, 1);
+  });
 });
