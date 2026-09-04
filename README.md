@@ -18,7 +18,7 @@ This extension is for Pi workflows that need fresh or source-backed information 
 - **Search live posts on X.** `tweet_search` calls the same API with built-in `x_search`.
 - **Reuse Pi's xAI login.** The extension registers the `xai` provider OAuth flow and resolves credentials through `ctx.modelRegistry.getApiKeyForProvider("xai")`.
 - **Keep credentials inside Pi.** Pi owns persistence, refresh locking, and configured auth paths. The extension never reads `auth.json` directly.
-- **Optional domain and date filters.** Restrict web results to allowed domains, or bound X results with `from_date` / `to_date`.
+- **Optional domain, handle, date, and media filters.** Restrict web results to allowed/excluded domains, bound X results with `from_date` / `to_date`, scope X results to specific accounts, or let xAI analyze attached images and videos.
 
 ## What this package adds
 
@@ -28,7 +28,10 @@ This extension is for Pi workflows that need fresh or source-backed information 
 - Default models aligned with grok-build / pi-xai search paths:
   - web: `grok-4.20-multi-agent`
   - X: `grok-4.20-0309-reasoning`
-- Formatted tool output with citations, server-side tool usage, and token counts when xAI returns them.
+- Recency-first X results: `tweet_search` runs keyword search in Latest mode and returns up to 20 posts, one per line as a verbatim post quote followed immediately by its URL (`@handle`, `YYYY-MM-DD`).
+- Predictable X calls: `tool_choice: "required"` + `max_turns: 1` make every `tweet_search` request exactly one server-side search call.
+- Formatted tool output with a deduplicated source list harvested from `url_citation` annotations, server-side tool usage, and token counts when xAI returns them.
+- Optional `model` override on both tools.
 - Session affinity for `tweet_search` via Responses `prompt_cache_key` (Pi session id, never conversation text).
 - No build step. Pi loads the TypeScript extension directly.
 
@@ -95,7 +98,9 @@ Example call:
 Arguments:
 
 - `query` — required search question.
-- `allowed_domains` — optional list of domains to restrict results to.
+- `allowed_domains` — optional list of domains to restrict results to. Mutually exclusive with `excluded_domains`; max 5 entries.
+- `excluded_domains` — optional list of domains to exclude from results. Mutually exclusive with `allowed_domains`; max 5 entries.
+- `model` — optional xAI model override for the search call (default `grok-4.20-multi-agent`).
 
 ### `tweet_search`
 
@@ -109,7 +114,7 @@ Example call:
   "arguments": {
     "query": "from:xai grok",
     "from_date": "2026-01-01",
-    "to_date": "2026-07-01"
+    "to_date": "2026-07-02"
   }
 }
 ```
@@ -118,7 +123,16 @@ Arguments:
 
 - `query` — required X search query.
 - `from_date` — optional `YYYY-MM-DD` (UTC), inclusive lower bound.
-- `to_date` — optional `YYYY-MM-DD` (UTC), inclusive upper bound.
+- `to_date` — optional `YYYY-MM-DD` (UTC), **exclusive** upper bound: the window ends at 00:00 UTC of that day. To include today's posts, pass tomorrow's date. (`from_date` equal to `to_date` is an empty window.)
+- `allowed_x_handles` — optional list of X handles to restrict results to. Mutually exclusive with `excluded_x_handles`; max 20 entries.
+- `excluded_x_handles` — optional list of X handles to exclude from results. Mutually exclusive with `allowed_x_handles`; max 20 entries.
+- `enable_image_understanding` — optional boolean; let xAI analyze images attached to matching posts.
+- `enable_video_understanding` — optional boolean; let xAI analyze videos attached to matching posts.
+- `model` — optional xAI model override for the search call (default `grok-4.20-0309-reasoning`; `grok-4.20-0309-non-reasoning` is a verified lower-latency option).
+
+Both dates must be strictly zero-padded `YYYY-MM-DD` (validated locally before the API call), and `from_date` must be on or before `to_date`.
+
+The tool wraps the query in an `x_keyword_search` Latest-mode scaffold (probe-verified against the live API: recency-sorted keyword search, up to 20 posts, one per line as a verbatim post quote followed immediately by its URL with `@handle` and `YYYY-MM-DD`), sends `tool_choice: "required"` with `max_turns: 1` and `parallel_tool_calls: false` so each request is exactly one server-side search call, and harvests real post URLs from the response's `url_citation` annotations (the top-level `citations` field is often null), so the output includes a deduplicated source list even when the prose omits links. Note the `reasoning` effort parameter is rejected by the grok-4.20 models and is not sent.
 
 `tweet_search` also sends the Pi session id as Responses cache affinity. It is not injected into the model conversation text.
 
@@ -163,6 +177,10 @@ pi install npm:pi-xai-search
 # or
 pi -e /path/to/pi-xai-search
 ```
+
+### `tweet_search` returns no posts for today
+
+`to_date` is exclusive: the window ends at 00:00 UTC of that day. To include today's posts, pass tomorrow's date as `to_date`. Setting `from_date` equal to `to_date` is an empty window and always returns zero posts.
 
 ### A different extension already registers the same tool names
 
