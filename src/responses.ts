@@ -18,7 +18,7 @@ export type ResponsesResult = {
     input_tokens?: number;
     output_tokens?: number;
     output_tokens_details?: { reasoning_tokens?: number };
-    server_side_tool_usage_details?: Record<string, number>;
+    server_side_tool_usage_details?: Record<string, number> | null;
   };
   citations?: string[];
   server_side_tool_usage?: Record<string, number>;
@@ -40,8 +40,8 @@ const X_SEARCH_INSTRUCTIONS =
 export function buildXSearchPrompt(query: string): string {
   return (
     `Use the x_search tool with x_keyword_search only, mode=Latest. ` +
-    `Run exactly this query: "${query}". ` +
-    `Return up to 20 X posts, one per line as "URL - one-line summary (@handle, YYYY-MM-DD)". ` +
+    `Run exactly this query: ${JSON.stringify(query)}. ` +
+    `Return up to 20 X posts, one per line as a verbatim, non-paraphrased post quote with the URL after each quote (@handle, YYYY-MM-DD). ` +
     `Posts only, no commentary.`
   );
 }
@@ -185,7 +185,7 @@ export function formatResponseSummary(result: ResponsesResult, title: string): s
   const sources: string[] = [];
   const seenSources = new Set<string>();
   const addSource = (url: unknown) => {
-    if (typeof url !== "string" || !url.startsWith("https://") || seenSources.has(url)) return;
+    if (typeof url !== "string" || !/^https?:\/\//.test(url) || seenSources.has(url)) return;
     seenSources.add(url);
     sources.push(url);
   };
