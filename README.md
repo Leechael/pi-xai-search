@@ -28,7 +28,7 @@ This extension is for Pi workflows that need fresh or source-backed information 
 - Default models aligned with grok-build / pi-xai search paths:
   - web: `grok-4.20-multi-agent`
   - X: `grok-4.20-0309-reasoning`
-- Recency-first X results: `tweet_search` runs keyword search in Latest mode and returns up to 20 posts, one per line as `URL - summary (@handle, YYYY-MM-DD)`.
+- Recency-first X results: `tweet_search` runs keyword search in Latest mode and returns up to 20 posts, one per line as a verbatim post quote followed immediately by its URL (`@handle`, `YYYY-MM-DD`).
 - Predictable X calls: `tool_choice: "required"` + `max_turns: 1` make every `tweet_search` request exactly one server-side search call.
 - Formatted tool output with a deduplicated source list harvested from `url_citation` annotations, server-side tool usage, and token counts when xAI returns them.
 - Optional `model` override on both tools.
@@ -132,7 +132,7 @@ Arguments:
 
 Both dates must be strictly zero-padded `YYYY-MM-DD` (validated locally before the API call), and `from_date` must be on or before `to_date`.
 
-The tool wraps the query in an `x_keyword_search` Latest-mode scaffold (probe-verified against the live API: recency-sorted keyword search, up to 20 posts, one per line as `URL - summary (@handle, YYYY-MM-DD)`), sends `tool_choice: "required"` with `max_turns: 1` and `parallel_tool_calls: false` so each request is exactly one server-side search call, and harvests real post URLs from the response's `url_citation` annotations (the top-level `citations` field is often null), so the output includes a deduplicated source list even when the prose omits links. Note the `reasoning` effort parameter is rejected by the grok-4.20 models and is not sent.
+The tool wraps the query in an `x_keyword_search` Latest-mode scaffold (probe-verified against the live API: recency-sorted keyword search, up to 20 posts, one per line as a verbatim post quote followed immediately by its URL with `@handle` and `YYYY-MM-DD`), sends `tool_choice: "required"` with `max_turns: 1` and `parallel_tool_calls: false` so each request is exactly one server-side search call, and harvests real post URLs from the response's `url_citation` annotations (the top-level `citations` field is often null), so the output includes a deduplicated source list even when the prose omits links. Note the `reasoning` effort parameter is rejected by the grok-4.20 models and is not sent.
 
 `tweet_search` also sends the Pi session id as Responses cache affinity. It is not injected into the model conversation text.
 

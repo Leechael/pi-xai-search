@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import piXaiSearch from "../index.ts";
 import { createXaiOAuth } from "../src/auth.ts";
-import type { ResponsesResult } from "../src/responses.ts";
 import {
   buildXSearchPrompt,
   formatResponseSummary,
@@ -19,11 +18,21 @@ describe("responses", () => {
     );
   });
 
-  it("accepts null nested server-side tool usage details", () => {
-    const result: ResponsesResult = {
-      usage: { server_side_tool_usage_details: null },
-    };
-    assert.equal(result.usage?.server_side_tool_usage_details, null);
+  it("handles null nested server-side tool usage details", () => {
+    const text = formatResponseSummary(
+      {
+        model: "grok-4.5",
+        output: [],
+        usage: {
+          input_tokens: 1,
+          output_tokens: 2,
+          server_side_tool_usage_details: null,
+        },
+      },
+      "Web search",
+    );
+    assert.match(text, /Tokens: 1 in \/ 2 out/);
+    assert.doesNotMatch(text, /Server-side tools/);
   });
 
   it("keeps HTTP citations in the source list", () => {
