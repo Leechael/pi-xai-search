@@ -125,11 +125,11 @@ Arguments:
 - `excluded_x_handles` — optional list of X handles to exclude from results. Mutually exclusive with `allowed_x_handles`; max 20 entries.
 - `enable_image_understanding` — optional boolean; let xAI analyze images attached to matching posts.
 - `enable_video_understanding` — optional boolean; let xAI analyze videos attached to matching posts.
-- `model` — optional xAI model override for the search call (default `grok-4.20-0309-reasoning`).
+- `model` — optional xAI model override for the search call (default `grok-4.20-0309-reasoning`; `grok-4.20-0309-non-reasoning` is a verified lower-latency option).
 
 Both dates must be strictly zero-padded `YYYY-MM-DD` (validated locally before the API call), and `from_date` must be on or before `to_date`.
 
-The tool sends a fixed instruction asking Grok to quote key posts verbatim with the post URL after each quote, and harvests real post URLs from the response's `url_citation` annotations (the top-level `citations` field is often null), so the output includes a deduplicated source list even when the prose omits links.
+The tool wraps the query in an `x_keyword_search` Latest-mode scaffold (probe-verified against the live API: recency-sorted keyword search, up to 20 posts, one per line as `URL - summary (@handle, YYYY-MM-DD)`), sends `tool_choice: "required"` with `max_turns: 1` and `parallel_tool_calls: false` so each request is exactly one server-side search call, and harvests real post URLs from the response's `url_citation` annotations (the top-level `citations` field is often null), so the output includes a deduplicated source list even when the prose omits links. Note the `reasoning` effort parameter is rejected by the grok-4.20 models and is not sent.
 
 `tweet_search` also sends the Pi session id as Responses cache affinity. It is not injected into the model conversation text.
 

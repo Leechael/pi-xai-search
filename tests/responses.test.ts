@@ -287,7 +287,7 @@ describe("responses", () => {
     );
   });
 
-  it("runXSearch sends verbatim instructions, media flags, and model override", async () => {
+  it("runXSearch sends keyword-search scaffold, force-one-call fields, media flags, and model override", async () => {
     let body: Record<string, unknown> = {};
     const fetchImpl: typeof fetch = async (_input, init) => {
       body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
@@ -311,7 +311,14 @@ describe("responses", () => {
       { fetchImpl },
     );
     assert.equal(body.model, "grok-4-1-fast-non-reasoning");
-    assert.match(String(body.instructions), /verbatim/);
+    assert.match(String(body.instructions), /untrusted/);
+    assert.equal(body.tool_choice, "required");
+    assert.equal(body.max_turns, 1);
+    assert.equal(body.parallel_tool_calls, false);
+    assert.equal(body.max_output_tokens, 8192);
+    const input = body.input as Array<{ role: string; content: string }>;
+    assert.match(input[0]!.content, /x_keyword_search only, mode=Latest/);
+    assert.match(input[0]!.content, /Run exactly this query: "q"/);
     const tools = body.tools as Array<Record<string, unknown>>;
     assert.equal(tools[0]?.enable_image_understanding, true);
     assert.equal(tools[0]?.enable_video_understanding, false);

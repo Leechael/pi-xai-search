@@ -88,7 +88,7 @@ export default function piXaiSearch(pi: ExtensionAPI): void {
       name: "tweet_search",
       label: "tweet_search",
       description:
-        "Search X (Twitter) via xAI Responses API built-in x_search (live posts + citations). Uses Pi xai OAuth. Replies quote key posts verbatim with the post URL after each quote, followed by a deduplicated source URL list. Optional from_date/to_date (strict YYYY-MM-DD UTC; from_date inclusive, to_date EXCLUSIVE at 00:00 UTC of that day — use tomorrow's date to include today). Optional allowed_x_handles / excluded_x_handles (mutually exclusive, max 20 each). Optional enable_image_understanding / enable_video_understanding. Optional model override.",
+        "Search X (Twitter) via xAI Responses API built-in x_search (live posts + citations). Uses Pi xai OAuth. Runs keyword search in Latest (recency) mode and returns up to 20 posts, one per line as 'URL - summary (@handle, date)', followed by a deduplicated source URL list. Exactly one server-side search call per request. Optional from_date/to_date (strict YYYY-MM-DD UTC; from_date inclusive, to_date EXCLUSIVE at 00:00 UTC of that day — use tomorrow's date to include today). Optional allowed_x_handles / excluded_x_handles (mutually exclusive, max 20 each). Optional enable_image_understanding / enable_video_understanding. Optional model override (e.g. grok-4.20-0309-non-reasoning for lower latency).",
       parameters: Type.Object({
         query: Type.String({ description: "X search query." }),
         from_date: Type.Optional(
