@@ -18,7 +18,7 @@ This extension is for Pi workflows that need fresh or source-backed information 
 - **Search live posts on X.** `tweet_search` calls the same API with built-in `x_search`.
 - **Reuse Pi's xAI login.** The extension registers the `xai` provider OAuth flow and resolves credentials through `ctx.modelRegistry.getApiKeyForProvider("xai")`.
 - **Keep credentials inside Pi.** Pi owns persistence, refresh locking, and configured auth paths. The extension never reads `auth.json` directly.
-- **Optional domain and date filters.** Restrict web results to allowed domains, or bound X results with `from_date` / `to_date`.
+- **Optional domain, handle, date, and media filters.** Restrict web results to allowed/excluded domains, bound X results with `from_date` / `to_date`, scope X results to specific accounts, or let xAI analyze attached images and videos.
 
 ## What this package adds
 
@@ -28,7 +28,10 @@ This extension is for Pi workflows that need fresh or source-backed information 
 - Default models aligned with grok-build / pi-xai search paths:
   - web: `grok-4.20-multi-agent`
   - X: `grok-4.20-0309-reasoning`
-- Formatted tool output with citations, server-side tool usage, and token counts when xAI returns them.
+- Recency-first X results: `tweet_search` runs keyword search in Latest mode and returns up to 20 posts, one per line as `URL - summary (@handle, YYYY-MM-DD)`.
+- Predictable X calls: `tool_choice: "required"` + `max_turns: 1` make every `tweet_search` request exactly one server-side search call.
+- Formatted tool output with a deduplicated source list harvested from `url_citation` annotations, server-side tool usage, and token counts when xAI returns them.
+- Optional `model` override on both tools.
 - Session affinity for `tweet_search` via Responses `prompt_cache_key` (Pi session id, never conversation text).
 - No build step. Pi loads the TypeScript extension directly.
 
@@ -174,6 +177,10 @@ pi install npm:pi-xai-search
 # or
 pi -e /path/to/pi-xai-search
 ```
+
+### `tweet_search` returns no posts for today
+
+`to_date` is exclusive: the window ends at 00:00 UTC of that day. To include today's posts, pass tomorrow's date as `to_date`. Setting `from_date` equal to `to_date` is an empty window and always returns zero posts.
 
 ### A different extension already registers the same tool names
 
