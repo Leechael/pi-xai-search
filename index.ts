@@ -52,8 +52,7 @@ export default function piXaiSearch(pi: ExtensionAPI): void {
           ),
           model: Type.Optional(
             Type.String({
-              description:
-                "Optional xAI model override for the search call (default grok-4.20-multi-agent).",
+              description: "Optional xAI model override for the search call (default grok-4.6).",
             }),
           ),
         },

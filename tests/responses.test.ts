@@ -77,7 +77,7 @@ describe("responses", () => {
       };
       return new Response(
         JSON.stringify({
-          model: "grok-4.20-multi-agent",
+          model: "grok-4.6",
           output: [
             {
               type: "message",
@@ -97,7 +97,7 @@ describe("responses", () => {
 
     assert.equal(captured.url, "https://api.x.ai/v1/responses");
     assert.equal(captured.auth, "Bearer tok");
-    assert.equal(captured.body?.model, "grok-4.20-multi-agent");
+    assert.equal(captured.body?.model, "grok-4.6");
     assert.equal(captured.body?.input, "hello");
     assert.equal(captured.body?.prompt_cache_key, undefined);
     assert.equal(captured.body?.store, false);
@@ -173,7 +173,7 @@ describe("responses", () => {
     globalThis.fetch = async () =>
       new Response(
         JSON.stringify({
-          model: "grok-4.20-multi-agent",
+          model: "grok-4.6",
           output: [{ type: "message", content: [{ type: "output_text", text: "result" }] }],
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
@@ -242,7 +242,7 @@ describe("responses", () => {
       body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
       return new Response(
         JSON.stringify({
-          model: "grok-4.20-multi-agent",
+          model: "grok-4.6",
           output: [{ type: "message", content: [{ type: "output_text", text: "ok" }] }],
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },

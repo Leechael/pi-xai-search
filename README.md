@@ -26,7 +26,7 @@ This extension is for Pi workflows that need fresh or source-backed information 
 - An `xai_search` Pi tool backed by Responses `tools: [{ type: "web_search" }]`.
 - A `tweet_search` Pi tool backed by Responses `tools: [{ type: "x_search" }]`.
 - Default models aligned with grok-build / pi-xai search paths:
-  - web: `grok-4.20-multi-agent`
+  - web: `grok-4.6`
   - X: `grok-4.20-0309-reasoning`
 - Recency-first X results: `tweet_search` runs keyword search in Latest mode and returns up to 20 posts, one per line as a verbatim post quote followed immediately by its URL (`@handle`, `YYYY-MM-DD`).
 - Predictable X calls: `tool_choice: "required"` + `max_turns: 1` make every `tweet_search` request exactly one server-side search call.
@@ -100,7 +100,7 @@ Arguments:
 - `query` — required search question.
 - `allowed_domains` — optional list of domains to restrict results to. Mutually exclusive with `excluded_domains`; max 5 entries.
 - `excluded_domains` — optional list of domains to exclude from results. Mutually exclusive with `allowed_domains`; max 5 entries.
-- `model` — optional xAI model override for the search call (default `grok-4.20-multi-agent`).
+- `model` — optional xAI model override for the search call (default `grok-4.6`).
 
 ### `tweet_search`
 
@@ -153,7 +153,7 @@ This does not add browsing to the model provider itself. It adds Pi tools. The m
 
 ### Protocol alignment
 
-- `xai_search` follows the grok-build `web_search` shape (`grok-4.20-multi-agent` fallback).
+- `xai_search` follows the grok-build `web_search` shape (`grok-4.6` fallback).
 - `tweet_search` follows the pi-xai `xai_x_search` shape (`grok-4.20-0309-reasoning` fallback).
 
 ## Troubleshooting
