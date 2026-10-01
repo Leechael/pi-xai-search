@@ -58,6 +58,7 @@ export default function piXaiSearch(pi: ExtensionAPI): void {
         },
         { not: { required: ["allowed_domains", "excluded_domains"] } },
       ),
+      annotations: { readOnlyHint: true, openWorldHint: true },
       async execute(_id, params, signal, _onUpdate, ctx) {
         try {
           const apiKey = await requireXaiApiKey(ctx);
@@ -137,6 +138,7 @@ export default function piXaiSearch(pi: ExtensionAPI): void {
         },
         { not: { required: ["allowed_x_handles", "excluded_x_handles"] } },
       ),
+      annotations: { readOnlyHint: true, openWorldHint: true },
       async execute(_id, params, signal, _onUpdate, ctx) {
         try {
           const apiKey = await requireXaiApiKey(ctx);
