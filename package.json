@@ -48,9 +48,6 @@
     "format:check": "oxfmt . --check",
     "pre-commit": "prek run"
   },
-  "dependencies": {
-    "typebox": "^1.1.38"
-  },
   "devDependencies": {
     "@earendil-works/pi-ai": "^0.99.2",
     "@earendil-works/pi-coding-agent": "^0.99.2",
@@ -62,7 +59,8 @@
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
-    "@earendil-works/pi-coding-agent": "*"
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
   },
   "engines": {
     "node": ">=22"
