@@ -128,7 +128,7 @@ describe("responses", () => {
     assert.equal(credentials.refresh, "new-refresh");
   });
 
-  it("registers capped, mutually exclusive filter schemas", () => {
+  it("registers capped filter schemas without provider-unsupported keywords", () => {
     const tools = new Map<string, { parameters: Record<string, unknown> }>();
     piXaiSearch({
       registerProvider() {},
@@ -141,13 +141,16 @@ describe("responses", () => {
     const webProperties = web.properties as Record<string, { maxItems?: number }>;
     assert.equal(webProperties.allowed_domains?.maxItems, 5);
     assert.equal(webProperties.excluded_domains?.maxItems, 5);
-    assert.deepEqual(web.not, { required: ["allowed_domains", "excluded_domains"] });
+    // pi embeds tool schemas verbatim into every provider request; OpenAI's backend
+    // fails mid-stream ("response protection is unavailable") on the `not` keyword.
+    // Mutual exclusion is enforced at runtime instead.
+    assert.equal(web.not, undefined);
 
     const x = tools.get("tweet_search")!.parameters;
     const xProperties = x.properties as Record<string, { maxItems?: number }>;
     assert.equal(xProperties.allowed_x_handles?.maxItems, 20);
     assert.equal(xProperties.excluded_x_handles?.maxItems, 20);
-    assert.deepEqual(x.not, { required: ["allowed_x_handles", "excluded_x_handles"] });
+    assert.equal(x.not, undefined);
   });
 
   it("registers xAI OAuth and resolves tool auth through the public ModelRegistry API", async () => {
