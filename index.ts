@@ -56,7 +56,10 @@ export default function piXaiSearch(pi: ExtensionAPI): void {
             }),
           ),
         },
-        { not: { required: ["allowed_domains", "excluded_domains"] } },
+        // NOTE: no `{ not: { required: [...] } }` here — pi embeds tool schemas verbatim
+        // into every provider request, and OpenAI's backend fails mid-stream with
+        // "response protection is unavailable" on the unsupported `not` keyword.
+        // Mutual exclusion is enforced at runtime in validateWebSearchDomainFilters().
       ),
       annotations: { readOnlyHint: true, openWorldHint: true },
       async execute(_id, params, signal, _onUpdate, ctx) {
@@ -136,7 +139,8 @@ export default function piXaiSearch(pi: ExtensionAPI): void {
             }),
           ),
         },
-        { not: { required: ["allowed_x_handles", "excluded_x_handles"] } },
+        // NOTE: no `{ not: { required: [...] } }` — see xai_search above. Mutual exclusion
+        // is enforced at runtime in validateXSearchHandleFilters().
       ),
       annotations: { readOnlyHint: true, openWorldHint: true },
       async execute(_id, params, signal, _onUpdate, ctx) {
